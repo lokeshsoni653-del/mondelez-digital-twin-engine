@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mondelēz Hub Plant | Digital Twin</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0f18; color: #fff; margin: 0; padding: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
+        .card { background: #1c2331; padding: 20px; border-radius: 8px; border-left: 5px solid #00c853; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .card h3 { margin: 0 0 10px 0; color: #8fa0b5; font-size: 14px; text-transform: uppercase; }
+        .card .value { font-size: 28px; font-weight: bold; }
+        .card.alert { border-left-color: #ff3d00; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { background: #1c2331; } 50% { background: #3d1b1b; } 100% { background: #1c2331; } }
+        #status { padding: 10px; background: #2e3b4e; border-radius: 5px; margin-bottom: 20px; font-weight: bold; color: #00c853; }
+    </style>
+</head>
+<body>
+
+    <h2>🏭 Cadbury Dairy Milk | Live Telemetry Engine</h2>
+    <div id="status">🟡 Connecting to WebSocket Backend...</div>
+
+    <div class="dashboard">
+        <div class="card" id="card-cocoa">
+            <h3>Cocoa Inventory</h3>
+            <div class="value"><span id="val-cocoa">--</span> kg</div>
+        </div>
+        <div class="card" id="card-sugar">
+            <h3>Sugar Inventory</h3>
+            <div class="value"><span id="val-sugar">--</span> kg</div>
+        </div>
+        <div class="card" id="card-speed">
+            <h3>Conveyor Velocity</h3>
+            <div class="value"><span id="val-speed">--</span> mpm</div>
+        </div>
+        <div class="card" id="card-temp">
+            <h3>Processing Temp</h3>
+            <div class="value"><span id="val-temp">--</span> °C</div>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        
+        // Connect to the custom Python WebSocket server mapped in main.py
+        const ws = new WebSocket('ws://localhost:8765');
+
+        ws.onopen = () => {
+            statusEl.innerHTML = '🟢 Live Data Stream Connected';
+            statusEl.style.color = '#00c853';
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Map the backend JSON keys to the frontend UI
+            document.getElementById('val-cocoa').innerText = data.cocoa_inventory_kg.toFixed(2);
+            document.getElementById('val-sugar').innerText = data.sugar_inventory_kg.toFixed(2);
+            document.getElementById('val-speed').innerText = data.conveyor_speed_mpm.toFixed(2);
+            document.getElementById('val-temp').innerText = data.temperature_c.toFixed(2);
+
+            // Trigger visual alert if cocoa drops to simulate supply chain stress
+            if (data.cocoa_inventory_kg < 1500) {
+                document.getElementById('card-cocoa').classList.add('alert');
+            } else {
+                document.getElementById('card-cocoa').classList.remove('alert');
+            }
+        };
+
+        ws.onerror = (error) => {
+            statusEl.innerHTML = '🔴 Connection Error';
+            statusEl.style.color = '#ff3d00';
+        };
+    </script>
+</body>
+</html>
